@@ -30,6 +30,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('sessionstore', [sessionController::class, 'sessionstore']);
     Route::get('getsession', [sessionController::class, 'getsession']);
     Route::post('endsession', [sessionController::class, 'endsession']);
+    Route::post('signoutalldevice', [sessionController::class, 'signoutalldevice']);
     //twostepverification for email
     Route::post('twostepverification', [securityController::class, 'twostepverification']);
     Route::post('sendotp', [securityController::class, 'sendotp']);

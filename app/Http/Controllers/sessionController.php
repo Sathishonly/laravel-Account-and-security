@@ -94,4 +94,36 @@ class sessionController extends Controller
             }
         }
     }
+
+    public function signoutalldevice(Request $request)
+    {
+        $input = $request->all();
+        $validation = Validator::make($input, [
+            'userId' => 'required',
+        ]);
+        if ($validation->fails()) {
+            return response()->json(['error' => $validation->errors(), 'status_code' => 400], 400);
+        } else {
+            $userId = $request->userId;
+            $sessions = sessions::where('userId', $userId)->get();
+
+            if ($sessions->isempty()) {
+                return response()->json([
+                    'message' => 'Token not found in the session',
+                    'status_code' => 404
+                ], 404);
+            }else{
+                foreach($sessions as $session){
+                    $tokenId = $session->tokenId;
+                    $tokenRepository = app(TokenRepository::class);
+                    $tokenRepository->revokeAccessToken($tokenId);
+                    $session->delete();
+                }
+                return response()->json([
+                    'message' => 'signout all device successfully',
+                    'status_code' => 200
+                ], 200);
+            }
+        }
+    }
 }
