@@ -168,6 +168,7 @@ class securityController extends Controller
                 $createdexpiryTime = Carbon::parse($emaildetails->created_at)->addMinutes(5);
 
                 if (Carbon::now()->greaterThan($createdexpiryTime)) {
+                    $emaildetails->delete();
                     return response()->json([
                         'status_code' => 401,
                         'error' => 'OTP has expired',

@@ -10,8 +10,7 @@ use Auth;
 use App\Models\forgotpassword;
 use App\Models\sessions;
 use PHPMailer\PHPMailer\PHPMailer;
-use App\Models\otp;
-use Carbon\Carbon;
+
 class UserController extends Controller
 {
 
@@ -21,26 +20,28 @@ class UserController extends Controller
         $validation = Validator::make($input, [
             'name' => 'required',
             'email' => 'required|email',
-            'password' => 'required',
+            'password' => [
+                'required',
+                'min:8',
+                'max:16',
+                'regex:/^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]+$/'
+            ]
         ]);
         if ($validation->fails()) {
             return response()->json(['error' => $validation->errors(), 'status_code' => 400], 400);
         } else {
-
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password)
             ]);
 
-            $token = $user->createToken('Laravel8PassportAuth')->accessToken;
+            $token = $user->createToken('LaravelPassportAuth')->accessToken;
             return response()->json(['status_code' => 200, 'token' => $token]);
         }
     }
 
-    /**
-     * Login Req
-     */
+   
     public function login(Request $request)
     {
         $input = $request->all();
@@ -54,7 +55,7 @@ class UserController extends Controller
             $user = User::where('email', $request->email)->first();
             if ($user) {
                 if (Hash::check($request->password, $user->password)) {
-                    $Token = $user->createToken('Laravel8PassportAuth');
+                    $Token = $user->createToken('LaravelPassportAuth');
                     $session = new sessions;
                     $session->userId = $user->_id;
                     $session->tokenId = $Token->token->id;
