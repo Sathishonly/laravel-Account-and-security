@@ -9,10 +9,18 @@ use Laravel\Passport\TokenRepository;
 
 class sessionController extends Controller
 {
+    protected $sessions;
+    protected $validator;
+
+    public function __construct(sessions $sessions, Validator $validator)
+    {
+        $this->sessions = $sessions;
+        $this->validator = $validator;
+    }
     public function sessionstore(Request $request)
     {
         $input = $request->all();
-        $validation = Validator::make($input, [
+        $validation = $this->validator::make($input, [
             'userId' => 'required',
             'tokenId' => 'required',
             'token' => 'required',
@@ -21,10 +29,11 @@ class sessionController extends Controller
             'date' => 'required',
         ]);
         if ($validation->fails()) {
-            return response()->json(['error' => $validation->errors(), 'status_code' => 400], 400);
+            $errors = $validation->errors()->first();
+            return response()->json(['status_code' => 400, 'error_code' => $errors]);
         } else {
             $tokenId = $request->tokenId;
-            $session = sessions::where('tokenId', $tokenId)->first();
+            $session = $this->sessions::where('tokenId', $tokenId)->first();
             $session->token = $request->token;
             $session->device = $request->device;
             $session->location = $request->location;
@@ -38,13 +47,14 @@ class sessionController extends Controller
     public function getsession(Request $request)
     {
         $input = $request->all();
-        $validation = Validator::make($input, [
+        $validation = $this->validator::make($input, [
             'userId' => 'required',
         ]);
         if ($validation->fails()) {
-            return response()->json(['error' => $validation->errors(), 'status_code' => 400], 400);
+            $errors = $validation->errors()->first();
+            return response()->json(['status_code' => 400, 'error_code' => $errors]);
         } else {
-            $session = sessions::where('userId', $request->userId)->get();
+            $session = $this->sessions::where('userId', $request->userId)->get();
             if ($session) {
                 return response()->json(['status_code' => 200, 'data' => $session]);
             } else {
@@ -57,15 +67,16 @@ class sessionController extends Controller
     public function endsession(Request $request)
     {
         $input = $request->all();
-        $validation = Validator::make($input, [
+        $validation = $this->validator::make($input, [
             'sessionid' => 'required',
         ]);
         if ($validation->fails()) {
-            return response()->json(['error' => $validation->errors(), 'status_code' => 400], 400);
+            $errors = $validation->errors()->first();
+            return response()->json(['status_code' => 400, 'error_code' => $errors]);
         } else {
             try {
                 $sessionid = $request->sessionid;
-                $session = sessions::find($sessionid);
+                $session = $this->sessions::find($sessionid);
                 if (!$session) {
                     return response()->json([
                         'message' => 'Session not found',
@@ -98,22 +109,23 @@ class sessionController extends Controller
     public function signoutalldevice(Request $request)
     {
         $input = $request->all();
-        $validation = Validator::make($input, [
+        $validation = $this->validator::make($input, [
             'userId' => 'required',
         ]);
         if ($validation->fails()) {
-            return response()->json(['error' => $validation->errors(), 'status_code' => 400], 400);
+            $errors = $validation->errors()->first();
+            return response()->json(['status_code' => 400, 'error_code' => $errors]);
         } else {
             $userId = $request->userId;
-            $sessions = sessions::where('userId', $userId)->get();
+            $sessions = $this->sessions::where('userId', $userId)->get();
 
             if ($sessions->isempty()) {
                 return response()->json([
                     'message' => 'Token not found in the session',
                     'status_code' => 404
                 ], 404);
-            }else{
-                foreach($sessions as $session){
+            } else {
+                foreach ($sessions as $session) {
                     $tokenId = $session->tokenId;
                     $tokenRepository = app(TokenRepository::class);
                     $tokenRepository->revokeAccessToken($tokenId);

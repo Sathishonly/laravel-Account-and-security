@@ -20,7 +20,8 @@ use App\Http\Controllers\sessionController;
 
 Route::post('register', [UserController::class, 'register']);
 Route::post('login', [UserController::class, 'login']);
-Route::post('forgotpassword', [UserController::class, 'forgotpassword']);
+Route::post('sentotpforgotpassword', [UserController::class, 'sentotpforgotpassword']);
+Route::post('verifyotpresetpassword', [UserController::class, 'verifyotpresetpassword']);
 Route::post('resetpassword', [UserController::class, 'resetpassword']);
 Route::middleware('auth:api')->group(function () {
     Route::post('refreshtoken', [UserController::class, 'refreshtoken']);

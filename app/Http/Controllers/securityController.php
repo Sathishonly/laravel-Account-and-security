@@ -11,20 +11,29 @@ use Carbon\Carbon;
 
 class securityController extends Controller
 {
+    protected $user;
+    protected $otp;
+    protected $validator;
 
+    public function __construct(User $user, otp $otp,Validator $validator)
+    {
+        $this->user = $user;
+        $this->otp = $otp;
+        $this->validator = $validator;
+    }
     public function twostepverification(Request $request)
     {
         $input = $request->all();
-        $validation = Validator::make($input, [
+        $validation = $this->validator::make($input, [
             'userId' => 'required',
             'status' => 'required',         //true or false
         ]);
-
         if ($validation->fails()) {
-            return response()->json(['error' => $validation->errors(), 'status_code' => 400], 400);
+            $errors = $validation->errors()->first();
+            return response()->json(['status_code' => 400, 'error_code' => $errors]);
         } else {
             $userId = $request->userId;
-            $user = User::find($userId);
+            $user = $this->user::find($userId);
             if($user){
                 $user->status = $request->status;
                 $user->save();
@@ -43,50 +52,37 @@ class securityController extends Controller
         $mail = new PHPMailer(true);
 
         $input = $request->all();
-        $validation = Validator::make($input, [
+        $validation = $this->validator::make($input, [
             'email' => 'required',
         ]);
 
         if ($validation->fails()) {
-            return response()->json(['error' => $validation->errors(), 'status_code' => 400], 400);
+            $errors = $validation->errors()->first();
+            return response()->json(['status_code' => 400, 'error_code' => $errors]);
         } else {
-
             $email = $request->input('email');
 
-            $userexist = User::where('email', $email)->first();
+            $userexist = $this->user::where('email', $email)->first();
             if (!$userexist) {
                 return response()->json(['status_code' => 400, 'message' => 'Email does not Exist']);
             } else {
                 $otp = mt_rand(100000, 999999);
 
                 try {
-                    $existingOTP = otp::where('email', $email)->first();
+                    $existingOTP = $this->otp::where('email', $email)->first();
                     if ($existingOTP) {
                         $existingOTP->delete();
                     }
-
                     $mail->SMTPDebug = 0;
                     $mail->isSMTP();
-                    $mail->Host = 'smtp.gmail.com'; //  smtp host
+                    $mail->Host = 'smtp.gmail.com'; 
                     $mail->SMTPAuth = true;
-                    //    $mail->Username = 'contact@simpencil.com';   //  sender username
-                    //    $mail->Password = 'D7#^$UBYE';       // sender password
-
-                    $mail->Username = 'test@gmail.com'; //  sender username
-                    $mail->Password = '*****'; // sender password
-
-                    $mail->SMTPSecure = 'tls'; // encryption - ssl/tls
-                    $mail->Port = 587; // port - 587/465
-
+                    $mail->Username = 'test@gmail.com'; 
+                    $mail->Password = '*****'; 
+                    $mail->SMTPSecure = 'tls'; 
+                    $mail->Port = 587; 
                     $mail->setFrom('test@gmail.com', 'Email verification OTP');
-
-                    //$mail->addCC($request->emailCc);
-                    //$mail->addBCC($request->emailBcc);
-
-                    //   $mail->addReplyTo('sender-reply-email', 'sender-reply-name');
-
-                    $mail->isHTML(true); // Set email content format to HTML
-
+                    $mail->isHTML(true); 
                     $mail->Subject = 'Email verification OTP';
                     $mail->Body = '<html>
                 <head>
@@ -99,15 +95,10 @@ class securityController extends Controller
             <div>
                 <section  style="background-color: white;">
                     <p style="font-size:12pt; margin: 15px 0px 0px 0px; font-family: \'Assistant\', sans-serif;" class="mt-5">Your OTP is ' . $otp . ' to complete the verification process.</p>
-
                     <p style="font-size:12pt; margin: 15px 0px 0px 0px; font-family: \'Assistant\', sans-serif;" class="mt-5">Enter the OTP in the designated field to proceed with your application.</p>
-
 					<p style="font-size:12pt;margin: 15px 0px 0px 0px;  font-family: \'Assistant\', sans-serif;" class="mt-3">Best regards,</p>
 					<p style="font-size:12pt;font-size:12pt;margin:0px; padding-top: 0px; font-family: \'Assistant\', sans-serif;">Management team</p>
-
-
 				</section>
-
                 <footer">
                 <span style="font-size:12pt;margin: 0px; font-family: \'Assistant\', sans-serif;"><a style="color:blue;" target="_blank" href="https://www.google.com">www.google.com</a> </span>
             </footer>
@@ -119,8 +110,7 @@ class securityController extends Controller
                     $mail->AddAddress($email);
                     $mail->send();
 
-
-                    $otpEntry = otp::create([
+                    $otpEntry = $this->otp::create([
                         'email' => $email,
                         'otp' => $otp,
                     ]);
@@ -144,26 +134,24 @@ class securityController extends Controller
     public function verifyotp(Request $request)
     {
         $input = $request->all();
-        $validation = Validator::make($input, [
+        $validation = $this->validator::make($input, [
             'email' => 'required',
             'otp' => 'required',
         ]);
 
         if ($validation->fails()) {
-            return response()->json(['error' => $validation->errors(), 'status_code' => 400], 400);
+            $errors = $validation->errors()->first();
+            return response()->json(['status_code' => 400, 'error_code' => $errors]);
         } else {
             $email = $request->input('email');
             $otp = $request->input('otp');
-
-            $emaildetails = otp::where('email', $email)->first();
-
+            $emaildetails = $this->otp::where('email', $email)->first();
             if (!$emaildetails) {
                 return response()->json([
                     'status_code' => 200,
                     'error' => 'Data not found',
                 ]);
             }
-
             if ($otp === strval($emaildetails->otp)) {
                 $createdexpiryTime = Carbon::parse($emaildetails->created_at)->addMinutes(5);
 
